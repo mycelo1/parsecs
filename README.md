@@ -65,9 +65,9 @@ Command-Line Parameters Parser
 * Define the *ON/OFF* switches with the `AddOnOff` method, specifying its initial/default state.
 
   ```csharp
-  ParsecsOption archive = cls.AddOnOff('a', "archive", ParsecsState.On, "Set the archive attribute");
-  ParsecsOption readonly = cls.AddOnOff('r', "readonly", ParsecsState.Off, "Set the read-only attribute");
-  ParsecsOption hidden = cls.AddOnOff('h', "hidden", ParsecsState.Off, "Set the hidden attribute");
+  ParsecsOption archive = main_parser.AddOnOff('a', "archive", ParsecsState.On, "Set the archive attribute");
+  ParsecsOption readonly = main_parser.AddOnOff('r', "readonly", ParsecsState.Off, "Set the read-only attribute");
+  ParsecsOption hidden = main_parser.AddOnOff('h', "hidden", ParsecsState.Off, "Set the hidden attribute");
   ```
 
   > + The same switch can be passed several times in the command-line. The final state will be defined by the last instance.
@@ -78,7 +78,7 @@ Command-Line Parameters Parser
 * Create an instance of `ParsecsChoice` with the `AddChoice` method. Then add each choice item by creating instances of `ParsecsOption` with the `AddItem` method. The chosen option can be queried with the `Value` property of the `ParsecsChoice` instance.
 
   ```csharp
-  ParsecsChoice encoding = cls.AddChoice('u', "Set encoding charset (default UTF-8)");
+  ParsecsChoice encoding = main_parser.AddChoice('u', "Set encoding charset (default UTF-8)");
   encoding.AddItem('a', "ansi", "ANSI charset");
   encoding.AddItem('u', "utf8", "UTF-8 charset");
   encoding.AddItem('l', "utf16le", "UTF-16 Litte Endian charset");
