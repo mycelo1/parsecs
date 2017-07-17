@@ -12,6 +12,7 @@ Command-Line Parameters Parser
   + Mutually-exclusive switches
   + Switchable options (*+on -off*)
   + String parameters (*-oSTRING -o:STRING -o=STRING -o STRING*)
+  + Loose parameters (before, after or amongst the switches)
   + Nestable top-level commands, each with their own set of parameters
   + Automatic help text generation
   
@@ -132,6 +133,47 @@ Command-Line Parameters Parser
   }
   ```
   
+  > **COMMAND-LINE EXAMPLE:** `program.exe encrypt -i input.txt -o output.txt`
+  
   > + The first argument of the command-line will be tested against each nested command. Once one is found, the rest of the arguments will be parsed by the corresponding parser. If the first argument does not match any command, the line will be parsed by the instance's own set of switches.
   > + The nested parameters will be listed by the `HelpText()` of the encompassing parser.
   > + All nested parsers/commands will be executed recursively as needed. The `Parse` method of the nested parsers should not be called.
+
+-----------------------------------------------------------------------------------------------------------
+
+## Classes, Methods and Properties
+
+* **`ParsecsParser`** class
+
+| **Member** | **Syntax** | **Returns** | **Description** |
+| :---: | :--- | :---: | :--- |
+| `AddOption` | *char shortname, string LongName, string HelpText (optional)* | `ParsecsOption` | Create a simple switch |
+| `AddOnOff` | *char ShortName, string LongName, ParsecsState DefaultState, string HelpText (optional)* | `ParsecsOption`  | Create an *on/off* switch | 
+| `AddString` | *char ShortName, string LongName, string HelpText (optional)* | `ParsecsOption`  | Create a string parameter |
+| `AddChoice` | *char DefaultValue (optional), string HelpText (optional)* | `ParsecsChoice`  | Create a group of mutually exclusive switches |
+| `AddCommand` | *string Command, string HelpText (optional)* | `ParsecsParser`  | Create a nested command |
+| `HelpText` | *none* | `string` | Build the help text |
+| `Parse` | *string[] args* | `bool` | Execute the command-line parsing |
+| `GetStrings` | *none* | `Enumerator<string>` | Loose parameters found in the command-line |
+| `Command` | *read-only property* | `ParsecsParser` | Points to the nested command parser specified by the user |
+
+-----------------------------------------------------------------------------------------------------------
+
+* **`ParsecsOption`** class
+
+| **Member** | **Syntax** | **Returns** | **Description** |
+| :---: | :--- | :---: | :--- |
+| `State` | *read-only property* | `ParsecsState` | Final switch state found by the parser |
+| `Switched` | *read-only property* | `bool` | Equivalent to `State == ParsecsState.On` |
+| `String` | *read-only property* | `string` | String passed as argument to the option |
+
+-----------------------------------------------------------------------------------------------------------
+
+* **`ParsecsChoice`** class
+
+| **Member** | **Syntax** | **Returns** | **Description** |
+| :---: | :--- | :---: | :--- |
+| `AddItem` | *char ShortName, string LongName, string HelpText (optional)* | `ParsecsOption` | Create a new switch into the mutually-exclusive group |
+| `Value` | *read-only property* | `char` | The short-name of the chosen switch, or the default value of the group |
+
+-----------------------------------------------------------------------------------------------------------
