@@ -12,6 +12,7 @@ Command-Line Parameters Parser
   + Mutually-exclusive switches
   + Switchable options (*+on -off*)
   + String parameters (*-oSTRING -o:STRING -o=STRING -o STRING*)
+  + Loose parameters (before, after or amongst the switches)
   + Nestable top-level commands, each with their own set of parameters
   + Automatic help text generation
   
@@ -64,9 +65,9 @@ Command-Line Parameters Parser
 * Define the *ON/OFF* switches with the `AddOnOff` method, specifying its initial/default state.
 
   ```csharp
-  ParsecsOption archive = cls.AddOnOff('a', "archive", ParsecsState.On, "Set the archive attribute");
-  ParsecsOption readonly = cls.AddOnOff('r', "readonly", ParsecsState.Off, "Set the read-only attribute");
-  ParsecsOption hidden = cls.AddOnOff('h', "hidden", ParsecsState.Off, "Set the hidden attribute");
+  ParsecsOption archive = main_parser.AddOnOff('a', "archive", ParsecsState.On, "Set the archive attribute");
+  ParsecsOption readonly = main_parser.AddOnOff('r', "readonly", ParsecsState.Off, "Set the read-only attribute");
+  ParsecsOption hidden = main_parser.AddOnOff('h', "hidden", ParsecsState.Off, "Set the hidden attribute");
   ```
 
   > + The same switch can be passed several times in the command-line. The final state will be defined by the last instance.
@@ -77,7 +78,7 @@ Command-Line Parameters Parser
 * Create an instance of `ParsecsChoice` with the `AddChoice` method. Then add each choice item by creating instances of `ParsecsOption` with the `AddItem` method. The chosen option can be queried with the `Value` property of the `ParsecsChoice` instance.
 
   ```csharp
-  ParsecsChoice encoding = cls.AddChoice('u', "Set encoding charset (default UTF-8)");
+  ParsecsChoice encoding = main_parser.AddChoice('u', "Set encoding charset (default UTF-8)");
   encoding.AddItem('a', "ansi", "ANSI charset");
   encoding.AddItem('u', "utf8", "UTF-8 charset");
   encoding.AddItem('l', "utf16le", "UTF-16 Litte Endian charset");
@@ -132,6 +133,47 @@ Command-Line Parameters Parser
   }
   ```
   
+  > **COMMAND-LINE EXAMPLE:** `program.exe encrypt -i input.txt -o output.txt`
+  
   > + The first argument of the command-line will be tested against each nested command. Once one is found, the rest of the arguments will be parsed by the corresponding parser. If the first argument does not match any command, the line will be parsed by the instance's own set of switches.
   > + The nested parameters will be listed by the `HelpText()` of the encompassing parser.
   > + All nested parsers/commands will be executed recursively as needed. The `Parse` method of the nested parsers should not be called.
+
+-----------------------------------------------------------------------------------------------------------
+
+## Classes, Methods and Properties
+
+* **`ParsecsParser`** class
+
+| **Member** | **Syntax** | **Returns** | **Description** |
+| :---: | :--- | :---: | :--- |
+| `AddOption` | *char shortname, string LongName, string HelpText (optional)* | `ParsecsOption` | Create a simple switch |
+| `AddOnOff` | *char ShortName, string LongName, ParsecsState DefaultState, string HelpText (optional)* | `ParsecsOption`  | Create an *on/off* switch | 
+| `AddString` | *char ShortName, string LongName, string HelpText (optional)* | `ParsecsOption`  | Create a string parameter |
+| `AddChoice` | *char DefaultValue (optional), string HelpText (optional)* | `ParsecsChoice`  | Create a group of mutually exclusive switches |
+| `AddCommand` | *string Command, string HelpText (optional)* | `ParsecsParser`  | Create a nested command |
+| `HelpText` | *none* | `string` | Build the help text |
+| `Parse` | *string[] args* | `bool` | Execute the command-line parsing |
+| `GetStrings` | *none* | `Enumerator<string>` | Loose parameters found in the command-line |
+| `Command` | *read-only property* | `ParsecsParser` | Points to the nested command parser specified by the user |
+
+-----------------------------------------------------------------------------------------------------------
+
+* **`ParsecsOption`** class
+
+| **Member** | **Syntax** | **Returns** | **Description** |
+| :---: | :--- | :---: | :--- |
+| `State` | *read-only property* | `ParsecsState` | Final switch state found by the parser |
+| `Switched` | *read-only property* | `bool` | Equivalent to `State == ParsecsState.On` |
+| `String` | *read-only property* | `string` | String passed as argument to the option |
+
+-----------------------------------------------------------------------------------------------------------
+
+* **`ParsecsChoice`** class
+
+| **Member** | **Syntax** | **Returns** | **Description** |
+| :---: | :--- | :---: | :--- |
+| `AddItem` | *char ShortName, string LongName, string HelpText (optional)* | `ParsecsOption` | Create a new switch into the mutually-exclusive group |
+| `Value` | *read-only property* | `char` | The short-name of the chosen switch, or the default value of the group |
+
+-----------------------------------------------------------------------------------------------------------
