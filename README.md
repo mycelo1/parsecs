@@ -6,21 +6,22 @@ Command-Line Parameters Parser
 
 ## Features
 
-  + Short and long named switches (*-o --option*)
-  + Grouping of short-named switches after a single dash (*-abc*)
+  + Short and long named verbs (*-o --option*)
+  + Grouping of short-named verbs after a single dash (*-abc*)
   + Support for single/double dashes and/or slashes (*-option --option /option*)
   + Mutually-exclusive switches
   + Switchable options (*+on -off*)
-  + String parameters (*-oSTRING -o:STRING -o=STRING -o STRING*)
-  + Loose parameters (before, after or amongst the switches)
-  + Nestable top-level commands, each with their own set of parameters
+  + String parameters (*-oSTRING -o:STRING -o=STRING -o STRING1 STRING2 STRING3*)
+  + Loose parameters (before, after or amongst the verbs)
+  + Parsing interruption with a lone "--" token
+  + Nestable top-level commands, each with their own set of verbs
   + Automatic help text generation
   
 -----------------------------------------------------------------------------------------------------------
 
 ## Basic command-line parsing
 
-* Instantiate the `Parsecs` class, define each parameter by creating `ParsecsOption` instances with `AddOption` and `AddString` methods, then run the `Parse` method over the passed command-line arguments. Once parsed, each `ParsecsOption` instance should be queried for the result of the corresponding parameters.
+* Instantiate the `Parsecs` class, define each verb by creating `ParsecsOption` instances with `AddOption` and `AddString` methods, then run the `Parse` method over the arguments' array. Once parsed, each `ParsecsOption` instance should be queried for the result of the corresponding capture.
 
     ```csharp
     static void Main(string[] args)
@@ -34,20 +35,14 @@ Command-Line Parameters Parser
         
         if (main_parser.Parse(args))
         {
-            if (main_help.Switched)
+            if ((main_help.Switched) || (!input.Switched) || (!output.Switched))
             {
+                // user requested the help text or didn't provide a required parameter
                 Console.Write(main_parser.HelpText());
             }
             else
             {
-                if (input.State != ParsecsState.Undefined)
-                {
-                    DoSomething(input.String, output.String, overwrite.Switched);
-                }
-                else
-                {
-                    // user did not provide required parameter
-                }
+                DoSomething(input.String, output.String, overwrite.Switched);
             }
         }
         else
@@ -56,13 +51,14 @@ Command-Line Parameters Parser
         }
     }    
     ```
-  > + For each option the short-name can be ommited by passing `default(char)` and the long-name can be ommited by passing `null`
-  > + The `BOOL` return value of the `Parse` method usually indicates that either an unrecognized option has been found or an option is missing its argument. More advanced checks should be done by the user's code.
+  > + For each verb the short-name can be ommited by passing `default(char)` and the long-name can be ommited by passing `null`.
+  > + Ommiting the HelpText parameter will hide the verb from the generated help text.
+  > + The `BOOL` return value of the `Parse` method usually indicates that an unrecognized verb has been found. More advanced checks should be done by the user's code.
 
 
 ## Defining *ON/OFF* switches
 
-* Define the *ON/OFF* switches with the `AddOnOff` method, specifying its initial/default state.
+* Define the *ON/OFF* switches with the `AddOnOff` method, specifying their initial/default state.
 
   ```csharp
   ParsecsOption archive = main_parser.AddOnOff('a', "archive", ParsecsState.On, "Set the archive attribute");
@@ -70,12 +66,12 @@ Command-Line Parameters Parser
   ParsecsOption hidden = main_parser.AddOnOff('h', "hidden", ParsecsState.Off, "Set the hidden attribute");
   ```
 
-  > + The same switch can be passed several times in the command-line. The final state will be defined by the last instance.
+  > + The same switch can be passed several times in the command-line. The final state will be defined by the last capture.
 
 
 ## Defining mutually-exclusive switches
 
-* Create an instance of `ParsecsChoice` with the `AddChoice` method. Then add each choice item by creating instances of `ParsecsOption` with the `AddItem` method. The chosen option can be queried with the `Value` property of the `ParsecsChoice` instance.
+* Create an instance of `ParsecsChoice` with the `AddChoice` method. Then add each choice item by creating instances of `ParsecsOption` with the `AddItem` method. The captured result is queried with the `Value` property of the `ParsecsChoice` instance.
 
   ```csharp
   ParsecsChoice encoding = main_parser.AddChoice('u', "Set encoding charset (default UTF-8)");
@@ -85,26 +81,25 @@ Command-Line Parameters Parser
   encoding.AddItem('b', "utf16be", "UTF-16 Big Endian charset");
   ```
 
-  > + If the user does not provide any of the choices, the default value will be returned by the `Value` property.
-  > + If the user provides more than one choice in the same command-line, the `Value` property will return the last one.
+  > + If the user does not provide any a choice, its default value will be returned by the `Value` property.
+  > + If the user provides more than one choice of the same mutually-exclusive group, the `Value` property will return the last capture.
 
 
 ## Working with nested commands
 
-* Create nested instances of the `ParsecsParser` class with the `AddCommand` method. Retrieve the user's selected command by querying the `Command` property of the encompassing `ParsecsParser` instance. Then test its value against each nested instance. Each `ParsecsParser` instance might have its own set of switches.
+* Commands are needed when the application performs more than one distinct function and might need different sets of parameters for each one. Create nested commands on the `ParsecsParser` class with the `AddCommand` method. Retrieve the user's selected command by querying the `Command` property of the encompassing `ParsecsParser` instance. After parsing, it will point to the corresponding instance. Each `ParsecsParser` instance can have its own set of verbs.
 
   ```csharp
   ParsecsParser main_parser = new ParsecsParser();
 
+  ParsecsParser keygen = main_parser.AddCommand("keygen", "Generate a random encryption key");
+  ParsecsOption kg_length = encrypt.AddString('l', "length", "Key length");
+
   ParsecsParser encrypt = main_parser.AddCommand("encrypt", "Perform file encryption");
   ParsecsOption en_input = encrypt.AddString('i', "input", "Input file");
   ParsecsOption en_output = encrypt.AddString('o', "output", "Output file");
+  ParsecsOption en_key = encrypt.AddString('k', "key", "Encryption key");
   ParsecsOption en_help = encrypt.AddOption('h', "help", "Show 'encrypt' parameters");
-
-  ParsecsParser decrypt = main_parser.AddCommand("decrypt", "perform file decryption");
-  ParsecsOption de_input = decrypt.AddString('i', "input", "input file");
-  ParsecsOption de_output = decrypt.AddString('o', "output", "output file");
-  ParsecsOption de_help = decrypt.AddOption('h', "help", "Show 'decrypt' parameters");
 
   if (main_parser.Parse(args))
   {
@@ -116,28 +111,32 @@ Command-Line Parameters Parser
           }
           else
           {
-              DoEncrypt(en_input.String, en_output.String);
+              DoEncrypt(en_input.String, en_output.String, en_key.String);
           }
       }
-      else if (main_parser.Command == decrypt)
+      else if (main_parser.Command == keygen)
       {
           if (de_help.Switched)
           {
-              Console.Write(decrypt.HelpText());
+              Console.Write(keygen.HelpText());
           }
           else
           {
-              DoDecrypt(de_input.String, de_output.String);
+              DoKeyGen(Convert.ToInt32(kg_length.String));
           }
+      }
+      else
+      {
+          Console.WriteLine("invalid command");
       }
   }
   ```
   
-  > **COMMAND-LINE EXAMPLE:** `program.exe encrypt -i input.txt -o output.txt`
-  
-  > + The first argument of the command-line will be tested against each nested command. Once one is found, the rest of the arguments will be parsed by the corresponding parser. If the first argument does not match any command, the line will be parsed by the instance's own set of switches.
-  > + The nested parameters will be listed by the `HelpText()` of the encompassing parser.
-  > + All nested parsers/commands will be executed recursively as needed. The `Parse` method of the nested parsers should not be called.
+  > + The user is expected to provide the command as the first argument. Once a valid command is found, the rest of the arguments will be parsed by the command's corresponding parser. If the first argument does not match any command, the whole line will be parsed by the encompassing instance's own set of switches.
+  > + If the user does not provide a valid command, the `Command` property will point to its own instance. 
+  > + The nested commands will be listed by the `HelpText()` of the encompassing instance.
+  > + All nested commands will be executed recursively as needed. Usually the `Parse` method of the nested commands should not be called.
+  > + Nested commands cannot share verbs between each other.
 
 -----------------------------------------------------------------------------------------------------------
 
@@ -147,15 +146,16 @@ Command-Line Parameters Parser
 
 | **Member** | **Syntax** | **Returns** | **Description** |
 | :---: | :--- | :---: | :--- |
-| `AddOption` | *char shortname, string LongName, string HelpText (optional)* | `ParsecsOption` | Create a simple switch |
-| `AddOnOff` | *char ShortName, string LongName, ParsecsState DefaultState, string HelpText (optional)* | `ParsecsOption`  | Create an *on/off* switch | 
-| `AddString` | *char ShortName, string LongName, string HelpText (optional)* | `ParsecsOption`  | Create a string parameter |
-| `AddChoice` | *char DefaultValue (optional), string HelpText (optional)* | `ParsecsChoice`  | Create a group of mutually exclusive switches |
-| `AddCommand` | *string Command, string HelpText (optional)* | `ParsecsParser`  | Create a nested command |
-| `HelpText` | *none* | `string` | Build the help text |
-| `Parse` | *string[] args* | `bool` | Execute the command-line parsing |
-| `GetStrings` | *none* | `Enumerator<string>` | Loose parameters found in the command-line |
-| `Command` | *read-only property* | `ParsecsParser` | Points to the nested command parser specified by the user |
+| **creator** | *[bool DoubleDash]* | `ParsecsParser` | Create the parser, optionally specifying if double-dashes are supported. |
+| `AddOption` | *char shortname, string LongName, [string HelpText]* | `ParsecsOption` | Create a simple verb |
+| `AddOnOff` | *char ShortName, string LongName, ParsecsState DefaultState, [string HelpText]* | `ParsecsOption`  | Create a switch that can be turned on and off freely along the command-line | 
+| `AddString` | *char ShortName, string LongName, [int MinValues], [int MaxValues], [string HelpText]* | `ParsecsOption`  | Create a verb to capture a subsequent string, optionally specifying how many strings should be captured (default 1) |
+| `AddChoice` | *[char DefaultValue], [string HelpText]* | `ParsecsChoice`  | Create a group of mutually-exclusive switches |
+| `AddCommand` | *string Command, [string HelpText]* | `ParsecsParser`  | Create a nested command, later providing its own set of verbs if needed |
+| `HelpText` | *[int LeftPadding], [bool UseSlashes]* | `string` | Generate the help text |
+| `Parse` | *string[] args* | `bool` | Execute the command-line parsing and populate each verb instance, including any nested commands |
+| `GetLooseParameters` | *none* | `Enumerator<string>` | Captured strings along the command-line not related to any defined verb |
+| `Command` | *read-only property* | `ParsecsParser` | If the user provided a valid command as the first argument, points to the nested command parser's instance |
 
 -----------------------------------------------------------------------------------------------------------
 
@@ -163,9 +163,10 @@ Command-Line Parameters Parser
 
 | **Member** | **Syntax** | **Returns** | **Description** |
 | :---: | :--- | :---: | :--- |
-| `State` | *read-only property* | `ParsecsState` | Final switch state found by the parser |
+| `State` | *read-only property* | `ParsecsState` | Final switch state found by the parser, also indicates if required string(s) were present |
 | `Switched` | *read-only property* | `bool` | Equivalent to `State == ParsecsState.On` |
-| `String` | *read-only property* | `string` | String passed as argument to the option |
+| `String` | *read-only property* | `string` | First/sole string passed to the argument |
+| `Strings` | *read-only property* | `Enumerator<string>` | All strings captured by the argument |
 
 -----------------------------------------------------------------------------------------------------------
 
