@@ -7,9 +7,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Parsecs")]
 [assembly: AssemblyDescription("Command-Line Parameters Parsing")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Mycelo")]
+[assembly: AssemblyCompany("mycelo")]
 [assembly: AssemblyProduct("Parsecs")]
-[assembly: AssemblyCopyright("Copyright ©  2017")]
+[assembly: AssemblyCopyright("Copyleft©2017 mycelo")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -31,5 +31,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.1.0")]
-[assembly: AssemblyFileVersion("1.1.0")]
+[assembly: AssemblyVersion("1.1.2")]
+[assembly: AssemblyFileVersion("1.1.2")]

@@ -14,14 +14,14 @@ namespace Mycelo.Parsecs
 
     public class ParsecsOption
     {
-        private ParsecsParser parser;
+        private ParsecsCommand parser;
 
         public ParsecsState State { get { return parser.GetState(this); } }
         public bool Switched { get { return parser.GetState(this) == ParsecsState.On; } }
         public string String { get { return parser.GetString(this); } }
         public IEnumerable<string> Strings { get { return parser.GetStrings(this); } }
 
-        internal ParsecsOption(ParsecsParser Parser)
+        internal ParsecsOption(ParsecsCommand Parser)
         {
             parser = Parser;
         }
@@ -29,12 +29,12 @@ namespace Mycelo.Parsecs
 
     public class ParsecsChoice
     {
-        private ParsecsParser parser;
+        private ParsecsCommand parser;
         internal string helptext;
 
         public char Value { get { return parser.GetGroupValue(this); } }
 
-        internal ParsecsChoice(ParsecsParser Parser, string HelpText)
+        internal ParsecsChoice(ParsecsCommand Parser, string HelpText)
         {
             helptext = HelpText;
             parser = Parser;
@@ -46,29 +46,40 @@ namespace Mycelo.Parsecs
         }
     }
 
-    public class ParsecsParser
+    public class ParsecsCommand
     {
-        private const char EQUAL_SIGN = '=';
-        private const char EQUAL_SIGN_ALT = ':';
-        private const char SINGLE_DASH = '-';
-        private const char SLASH = '/';
-        private const char PLUS_SIGN = '+';
-        private const string DOUBLE_DASH = "--";
-        private const string DOUBLE_PLUS = "++";
-        private readonly bool doubledash;
-        private string helptext;
-        private ParsecsParser command;
+        protected const char EQUAL_SIGN = '=';
+        protected const char EQUAL_SIGN_ALT = ':';
+        protected const char SINGLE_DASH = '-';
+        protected const char SLASH = '/';
+        protected const char PLUS_SIGN = '+';
+        protected const char ESCAPE = '\\';
+        protected const string DOUBLE_DASH = "--";
+        protected const string DOUBLE_PLUS = "++";
 
-        public ParsecsParser Command { get { return command; } }
+        protected const string ERR_UNIQUE_SHORTNAME = "non-unique shortname";
+        protected const string ERR_UNIQUE_LONGNAME = "non-unique longname";
+        protected const string ERR_PARSE_NESTED = "cannot parse nested command";
 
-        private enum OptionKind
+        protected readonly bool doubledash;
+        protected readonly string helptext;
+        protected readonly string commandname;
+        protected ParsecsCommand command;
+
+        public ParsecsCommand Command { get { return command; } }
+        public string Name { get { return commandname; } }
+        public IEnumerable<string> LooseParameters { get { return GetLooseParameters(); } }
+        public bool this[char ShortName] { get { if (OptionByShort.ContainsKey(ShortName)) return OptionByShort[ShortName].state == ParsecsState.On; else return false; } }
+        public bool this[string LongName] { get { if (OptionByLong.ContainsKey(LongName)) return OptionByLong[LongName].state == ParsecsState.On; else return false; } }
+
+        protected enum OptionKind
         {
             Switch,
             SwitchGroup,
             String
         }
 
-        private class OptionData
+        protected class OptionData
         {
             public OptionKind optionkind;
             public object optionobject;
@@ -98,15 +109,15 @@ namespace Mycelo.Parsecs
             }
         }
 
-        private Dictionary<string, ParsecsParser> Commands = new Dictionary<string, ParsecsParser>();
-        private Dictionary<object, OptionData> OptionByObject = new Dictionary<object, OptionData>();
-        private Dictionary<char, OptionData> OptionByShort = new Dictionary<char, OptionData>();
-        private Dictionary<string, OptionData> OptionByLong = new Dictionary<string, OptionData>();
-        private Dictionary<object, List<OptionData>> OptionGroups = new Dictionary<object, List<OptionData>>();
-        private List<OptionData> LoneOptions = new List<OptionData>();
-        private Dictionary<object, OptionData> GroupValue = new Dictionary<object, OptionData>();
-        private Dictionary<object, char> GroupDefault = new Dictionary<object, char>();
-        private List<string> LooseParameter = new List<string>();
+        protected Dictionary<string, ParsecsCommand> Commands = new Dictionary<string, ParsecsCommand>();
+        protected Dictionary<object, OptionData> OptionByObject = new Dictionary<object, OptionData>();
+        protected Dictionary<char, OptionData> OptionByShort = new Dictionary<char, OptionData>();
+        protected Dictionary<string, OptionData> OptionByLong = new Dictionary<string, OptionData>();
+        protected Dictionary<object, List<OptionData>> OptionGroups = new Dictionary<object, List<OptionData>>();
+        protected List<OptionData> LoneOptions = new List<OptionData>();
+        protected Dictionary<object, OptionData> GroupValue = new Dictionary<object, OptionData>();
+        protected Dictionary<object, char> GroupDefault = new Dictionary<object, char>();
+        protected List<string> LooseParameter = new List<string>();
 
         public ParsecsOption AddOption(char ShortName, string LongName, string HelpText = default(string))
         {
@@ -127,7 +138,7 @@ namespace Mycelo.Parsecs
 
         public ParsecsOption AddString(char ShortName, string LongName, string HelpText = default(string))
         {
-            return AddOption(OptionKind.String, ShortName, LongName, HelpText, false, null, ParsecsState.Undefined, 1, Int32.MaxValue);
+            return AddOption(OptionKind.String, ShortName, LongName, HelpText, false, null, ParsecsState.Undefined, 1, 1);
         }
 
         public ParsecsOption AddString(char ShortName, string LongName, int MinValues, string HelpText = default(string))
@@ -140,9 +151,9 @@ namespace Mycelo.Parsecs
             return AddOption(OptionKind.String, ShortName, LongName, HelpText, false, null, ParsecsState.Undefined, MinValues, MaxValues);
         }
 
-        public ParsecsParser AddCommand(string Command, string HelpText = default(string))
+        public ParsecsCommand AddCommand(string Command, string HelpText = default(string))
         {
-            ParsecsParser command = new ParsecsParser(doubledash, HelpText);
+            ParsecsCommand command = new ParsecsCommand(doubledash, Command, HelpText);
             Commands.Add(Command.Trim().ToLower(), command);
             return command;
         }
@@ -152,15 +163,15 @@ namespace Mycelo.Parsecs
             return AddOption(OptionKind.SwitchGroup, shortname, longname, helptext, false, switchgroup, ParsecsState.Undefined, 0, 0);
         }
 
-        private ParsecsOption AddOption(OptionKind optionkind, char shortname, string longname, string helptext, bool threestate, object switchgroup, ParsecsState defaultstate, int minvalues, int maxvalues)
+        protected ParsecsOption AddOption(OptionKind optionkind, char shortname, string longname, string helptext, bool threestate, object switchgroup, ParsecsState defaultstate, int minvalues, int maxvalues)
         {
             ParsecsOption optionobject = new ParsecsOption(this);
             string longnorm = (longname ?? String.Empty).Trim().ToLower();
             OptionData optiondata = new OptionData(optionkind, optionobject, shortname, longnorm, helptext, threestate, switchgroup, defaultstate, minvalues, maxvalues);
             OptionByObject.Add(optionobject, optiondata);
 
-            try { if (shortname != default(char)) OptionByShort.Add(shortname, optiondata); } catch { throw new ArgumentException("non-unique shortname"); }
-            try { if (!String.IsNullOrWhiteSpace(longnorm)) OptionByLong.Add(longnorm, optiondata); } catch { throw new ArgumentException("non-unique longname"); }
+            try { if (shortname != default(char)) OptionByShort.Add(shortname, optiondata); } catch { throw new ArgumentException(ERR_UNIQUE_SHORTNAME); }
+            try { if (!String.IsNullOrWhiteSpace(longnorm)) OptionByLong.Add(longnorm, optiondata); } catch { throw new ArgumentException(ERR_UNIQUE_LONGNAME); }
 
             if (switchgroup != null)
             {
@@ -175,7 +186,114 @@ namespace Mycelo.Parsecs
             return optionobject;
         }
 
-        private OptionData ParseShortSwitch(char sign, string body)
+        internal bool Parse(string[] args)
+        {
+            OptionData optwaitvalue = null;
+
+            try
+            {
+                if ((args.Length > 0) && Commands.ContainsKey(args[0].ToLower()))
+                {
+                    command = Commands[args[0].ToLower()];
+                    return command.Parse(args.Skip(1).ToArray());
+                }
+
+                foreach (string arg in args)
+                {
+                    if (!String.IsNullOrWhiteSpace(arg))
+                    {
+                        bool parsed;
+                        bool stop = false;
+
+                        if (doubledash)
+                        {
+                            parsed = ParseDoubleDash(arg, ref optwaitvalue, ref stop);
+                        }
+                        else
+                        {
+                            parsed = ParseSingleDash(arg, ref optwaitvalue);
+                        }
+
+                        if (!parsed)
+                        {
+                            if (optwaitvalue == null)
+                            {
+                                LooseParameter.Add(Escape(arg));
+                            }
+                            else
+                            {
+                                ParseString(optwaitvalue, Escape(arg), false);
+                            }
+                        }
+
+                        if (stop)
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                command = this;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        protected bool ParseDoubleDash(string arg, ref OptionData optwaitvalue, ref bool stop)
+        {
+            if (arg == DOUBLE_DASH)
+            {
+                stop = true;
+            }
+            else if ((arg.Length >= 2) && ((arg[0] == SINGLE_DASH) || (arg[0] == PLUS_SIGN)) && (arg[1] != arg[0]))
+            {
+                optwaitvalue = ParseShortSwitch(arg[0], arg.Substring(1, arg.Length - 1));
+            }
+            else if ((arg.Length == 2) && (arg[0] == SLASH))
+            {
+                optwaitvalue = ParseShortSwitch(arg[0], arg[1].ToString());
+            }
+            else if ((arg.Length > 2) && (arg[0] == SLASH))
+            {
+                optwaitvalue = ParseLongSwitch(arg[0], arg.Substring(1, arg.Length - 1));
+            }
+            else if ((arg.Length > 2) && ((arg.Substring(0, 2) == DOUBLE_DASH) || (arg.Substring(0, 2) == DOUBLE_PLUS)))
+            {
+                optwaitvalue = ParseLongSwitch(arg[0], arg.Substring(2, arg.Length - 2));
+            }
+            else
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        protected bool ParseSingleDash(string arg, ref OptionData optwaitvalue)
+        {
+            if ((arg.Length >= 2) && (arg[1] != arg[0]) && ((arg[0] == SINGLE_DASH) || (arg[0] == PLUS_SIGN) || (arg[0] == SLASH)))
+            {
+                if (arg.Length == 2)
+                {
+                    optwaitvalue = ParseShortSwitch(arg[0], arg[1].ToString());
+                }
+                else
+                {
+                    optwaitvalue = ParseLongSwitch(arg[0], arg.Substring(1, arg.Length - 1));
+                }
+            }
+            else
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        protected OptionData ParseShortSwitch(char sign, string body)
         {
             if ((body.Length == 1) || ((body[1] != EQUAL_SIGN) && (body[1] != EQUAL_SIGN_ALT)))
             {
@@ -220,7 +338,7 @@ namespace Mycelo.Parsecs
             return null;
         }
 
-        private OptionData ParseLongSwitch(char sign, string longname)
+        protected OptionData ParseLongSwitch(char sign, string longname)
         {
             string[] split = longname.Split(new char[] { EQUAL_SIGN, EQUAL_SIGN_ALT }, 2);
 
@@ -243,7 +361,7 @@ namespace Mycelo.Parsecs
             return null;
         }
 
-        private OptionData ParseString(OptionData option, string value, bool equalsign)
+        protected OptionData ParseString(OptionData option, string value, bool equalsign)
         {
             if (String.IsNullOrWhiteSpace(value))
             {
@@ -283,17 +401,18 @@ namespace Mycelo.Parsecs
                 }
                 else
                 {
-                    throw new ArgumentOutOfRangeException();
+                    LooseParameter.Add(value);
+                    return null;
                 }
             }
         }
 
-        private void SetSwitch(OptionData option, char sign)
+        protected void SetSwitch(OptionData option, char sign)
         {
             option.state = GetState(option.threestate, sign);
         }
 
-        private void SetGroup(OptionData option)
+        protected void SetGroup(OptionData option)
         {
             object switchgroup = option.switchgroup;
             option.state = ParsecsState.On;
@@ -302,7 +421,7 @@ namespace Mycelo.Parsecs
             {
                 if (groupitem != option)
                 {
-                    option.state = ParsecsState.Off;
+                    groupitem.state = ParsecsState.Off;
                 }
             }
 
@@ -316,7 +435,7 @@ namespace Mycelo.Parsecs
             }
         }
 
-        private ParsecsState GetState(bool threestate, char sign)
+        protected ParsecsState GetState(bool threestate, char sign)
         {
             if (threestate)
             {
@@ -341,7 +460,19 @@ namespace Mycelo.Parsecs
             }
         }
 
-        private IEnumerable<Tuple<string, string, string>> HelpTextGroup(IEnumerable<OptionData> options, bool useslashes)
+        protected string Escape(string toescape)
+        {
+            if ((toescape.Length > 1) && (toescape[0] == ESCAPE))
+            {
+                return toescape.Remove(0, 1);
+            }
+            else
+            {
+                return toescape;
+            }
+        }
+
+        protected IEnumerable<Tuple<string, string, string>> HelpTextGroup(IEnumerable<OptionData> options, bool useslashes)
         {
             foreach (OptionData option in options)
             {
@@ -396,107 +527,11 @@ namespace Mycelo.Parsecs
             }
         }
 
-        public ParsecsParser()
-        {
-            doubledash = true;
-        }
-
-        public ParsecsParser(bool DoubleDash)
-        {
-            doubledash = false;
-        }
-
-        private ParsecsParser(bool DoubleDash, string HelpText)
+        internal ParsecsCommand(bool DoubleDash, string CommandName, string HelpText)
         {
             doubledash = DoubleDash;
+            commandname = CommandName;
             helptext = HelpText;
-        }
-
-        public bool Parse(string[] args)
-        {
-            OptionData optwaitvalue = null;
-
-            try
-            {
-                if ((args.Length > 0) && Commands.ContainsKey(args[0].ToLower()))
-                {
-                    command = Commands[args[0].ToLower()];
-                    return command.Parse(args.Skip(1).ToArray());
-                }
-
-                foreach (string arg in args)
-                {
-                    if (!String.IsNullOrWhiteSpace(arg))
-                    {
-                        if (doubledash)
-                        {
-                            if (arg == DOUBLE_DASH)
-                            {
-                                break;
-                            }
-                            else if ((arg.Length >= 2) && ((arg[0] == SINGLE_DASH) || (arg[0] == PLUS_SIGN)) && (arg[1] != arg[0]))
-                            {
-                                optwaitvalue = ParseShortSwitch(arg[0], arg.Substring(1, arg.Length - 1));
-                            }
-                            else if ((arg.Length == 2) && (arg[0] == SLASH))
-                            {
-                                optwaitvalue = ParseShortSwitch(arg[0], arg[1].ToString());
-                            }
-                            else if ((arg.Length > 2) && (arg[0] == SLASH))
-                            {
-                                optwaitvalue = ParseLongSwitch(arg[0], arg.Substring(1, arg.Length - 1));
-                            }
-                            else if ((arg.Length > 2) && ((arg.Substring(0, 2) == DOUBLE_DASH) || (arg.Substring(0, 2) == DOUBLE_PLUS)))
-                            {
-                                optwaitvalue = ParseLongSwitch(arg[0], arg.Substring(2, arg.Length - 2));
-                            }
-                            else
-                            {
-                                if (optwaitvalue == null)
-                                {
-                                    LooseParameter.Add(arg);
-                                }
-                                else
-                                {
-                                    ParseString(optwaitvalue, arg, false);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if ((arg.Length >= 2) && (arg[1] != arg[0]) && ((arg[0] == SINGLE_DASH) || (arg[0] == PLUS_SIGN) || (arg[0] == SLASH)))
-                            {
-                                if (arg.Length == 2)
-                                {
-                                    optwaitvalue = ParseShortSwitch(arg[0], arg[1].ToString());
-                                }
-                                else
-                                {
-                                    optwaitvalue = ParseLongSwitch(arg[0], arg.Substring(1, arg.Length - 1));
-                                }
-                            }
-                            else
-                            {
-                                if (optwaitvalue == null)
-                                {
-                                    LooseParameter.Add(arg);
-                                }
-                                else
-                                {
-                                    ParseString(optwaitvalue, arg, false);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                command = this;
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
         }
 
         public string HelpText(int LeftPadding = 2, bool UseSlashes = false)
@@ -642,6 +677,28 @@ namespace Mycelo.Parsecs
         public IEnumerable<string> GetLooseParameters()
         {
             return LooseParameter;
+        }
+    }
+
+    public class ParsecsParser : ParsecsCommand
+    {
+        new private string Name { get; }
+
+        public ParsecsParser()
+            : base(true, null, null)
+        {
+            //
+        }
+
+        public ParsecsParser(bool DoubleDash)
+            : base(DoubleDash, null, null)
+        {
+            //
+        }
+
+        new public bool Parse(string[] args)
+        {
+            return base.Parse(args);
         }
     }
 }
