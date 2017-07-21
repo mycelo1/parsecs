@@ -20,6 +20,7 @@ namespace Mycelo.Parsecs
         public bool Switched { get { return parser.GetState(this) == ParsecsState.On; } }
         public string String { get { return parser.GetString(this); } }
         public IEnumerable<string> Strings { get { return parser.GetStrings(this); } }
+        public string this[int index] { get { var strs = parser.GetStrings(this); if (strs.Count() > index) return strs.ElementAt(index); else return String.Empty; } }
 
         internal ParsecsOption(ParsecsCommand Parser)
         {
@@ -33,6 +34,7 @@ namespace Mycelo.Parsecs
         internal string helptext;
 
         public char Value { get { return parser.GetGroupValue(this); } }
+        public ParsecsOption Option { get { return (ParsecsOption)parser.GetGroupObject(this); } }
 
         internal ParsecsChoice(ParsecsCommand Parser, string HelpText)
         {
@@ -59,7 +61,6 @@ namespace Mycelo.Parsecs
 
         protected const string ERR_UNIQUE_SHORTNAME = "non-unique shortname";
         protected const string ERR_UNIQUE_LONGNAME = "non-unique longname";
-        protected const string ERR_PARSE_NESTED = "cannot parse nested command";
 
         protected readonly bool doubledash;
         protected readonly string helptext;
@@ -671,6 +672,18 @@ namespace Mycelo.Parsecs
             else
             {
                 return GroupDefault[switchgroup];
+            }
+        }
+
+        internal object GetGroupObject(object switchgroup)
+        {
+            if (GroupValue.ContainsKey(switchgroup))
+            {
+                return GroupValue[switchgroup].optionobject;
+            }
+            else
+            {
+                return null;
             }
         }
 

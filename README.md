@@ -22,6 +22,11 @@ Command-Line Parameters Parser
 
 ## Version Info
 
+* 1.1.3
+
+  + Added an `int`-indexed property to `ParsecsOption` class to retrieve its n<sup>th</sup> captured string.
+  + Added the `Option` property to `ParsecsChoice` to retrieve the verb's `ParsecsOption` instance chosen by the user.
+
 * 1.1.2
 
   + Added `ParsecsCommand` class to avoid erroneous calling of the `Parse` method on nested commands. It is now the return value of the `AddCommand` method. It has all members of `ParsecsParser` except `Parse`. In addition, it has a `Name` property that returns this command's verb.
@@ -29,7 +34,7 @@ Command-Line Parameters Parser
   + Added `LooseParameters` property.
   + Parse will not fail if a verb captured more than the maximum number of strings. Instead, exceeding strings will show up on `LooseParameters`.
   + Arguments that must begin with *dash*, *slash* or *plus sign* but should not be interpreted as a verb can be escaped with `\`.
-  + Fixed the chosen item from a mutually-exclusive group being set as `Off` instead of `On`.
+  + Fixed the chosen item's instance from a mutually-exclusive group being set as `Off` instead of `On`.
 
 * 1.1.0
 
@@ -77,7 +82,7 @@ Command-Line Parameters Parser
 
   > + For each verb the short-name can be ommited by passing `default(char)` and the long-name can be ommited by passing `null`.
   > + Ommiting the HelpText parameter will hide the verb from the generated help text.
-  > + The `bool` return value of the `Parse` method usually indicates that an unrecognized verb has been found. More advanced checks should be done by the user's code.
+  > + The `bool` return value of the `Parse` method usually indicates that an unrecognized verb has been found. More advanced checks should be done by the application's own code.
 
 ## Defining *ON/OFF* switches
 
@@ -198,8 +203,9 @@ Command-Line Parameters Parser
 | :---: | :--- | :---: | :--- |
 | `State` | *read-only property* | `ParsecsState` | Final switch state found by the parser, also indicates if required string(s) were present |
 | `Switched` | *read-only property* | `bool` | Equivalent to `State == ParsecsState.On` |
-| `String` | *read-only property* | `string` | First/sole string passed to the argument |
-| `Strings` | *read-only property* | `Enumerator<string>` | All strings captured by the argument |
+| `String` | *read-only property* | `string` | First/sole string captured by this verb |
+| `Strings` | *read-only property* | `Enumerator<string>` | All strings captured by this verb |
+| `[int]` | *read-only property* | `string` | The n<sup>th</sup> string captured by this verb |
 
 -----------------------------------------------------------------------------------------------------------
 
@@ -207,7 +213,8 @@ Command-Line Parameters Parser
 
 | **Member** | **Syntax** | **Returns** | **Description** |
 | :---: | :--- | :---: | :--- |
-| `AddItem` | *char ShortName, string LongName, string HelpText (optional)* | `ParsecsOption` | Create a new switch into the mutually-exclusive group |
-| `Value` | *read-only property* | `char` | The short-name of the chosen switch, or the default value of the group |
+| `AddItem` | *char ShortName, string LongName, [string HelpText]* | `ParsecsOption` | Create a new switch item into this mutually-exclusive group |
+| `Option` | *read-only property* | `ParsecsOption` | If the user chose one of the items, returns the equivalent `ParsecsOption` instance, otherwise `null` |
+| `Value` | *read-only property* | `char` | The short-name of the user's choice, or the default `char` value of the group |
 
 -----------------------------------------------------------------------------------------------------------
