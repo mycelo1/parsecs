@@ -80,6 +80,36 @@ Command-Line Parameters Parser
     }
     ```
 
+* An alternative, slightly contracted version of the same code.
+
+    ```csharp
+    static void Main(string[] args)
+    {
+        var clp = new ParsecsParser();
+        var input = clp.AddString('i', "input", "Input file path");
+        var output = clp.AddString('o', "output", "Output file path (optional)");
+        clp.AddOption('w', "overwrite", "Overwrite existing file");
+        clp.AddOption('h', "help", "Display help text");
+
+        if (clp.Parse(args))
+        {
+            if (clp['h'] || !clp['i'] || !clp['o'])
+            {
+                // user requested the help text or didn't provide a required parameter
+                Console.Write(clp.HelpText());
+            }
+            else
+            {
+                DoSomething(input[0], output[0], clp['w']);
+            }
+        }
+        else
+        {
+            // something went wrong in the parsing
+        }
+    }
+    ```
+
   > + For each verb the short-name can be ommited by passing `default(char)` and the long-name can be ommited by passing `null`.
   > + Ommiting the HelpText parameter will hide the verb from the generated help text.
   > + The `bool` return value of the `Parse` method usually indicates that an unrecognized verb has been found. More advanced checks should be done by the application's own code.
