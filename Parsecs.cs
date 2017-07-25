@@ -69,9 +69,10 @@ namespace Mycelo.Parsecs
 
         public ParsecsCommand Command { get { return command; } }
         public string Name { get { return commandname; } }
-        public IEnumerable<string> LooseParameters { get { return GetLooseParameters(); } }
+        public IEnumerable<string> LooseParameters { get { return LooseParameter; } }
         public bool this[char ShortName] { get { if (OptionByShort.ContainsKey(ShortName)) return OptionByShort[ShortName].state == ParsecsState.On; else return false; } }
         public bool this[string LongName] { get { if (OptionByLong.ContainsKey(LongName)) return OptionByLong[LongName].state == ParsecsState.On; else return false; } }
+        public string this[int Index] { get { return (LooseParameter.Count > Index) ? LooseParameter[Index] : String.Empty; } }
 
         protected enum OptionKind
         {

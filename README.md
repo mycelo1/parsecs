@@ -22,6 +22,10 @@ Command-Line Parameters Parser
 
 ## Version Info
 
+* 1.1.4
+
+  + Added an `int`-indexed property to `ParsecsParser` and `ParsecsCommand` class to retrieve their n<sup>th</sup> captured string not related to any defined verb (a.k.a. loose parameter).
+
 * 1.1.3
 
   + Added an `int`-indexed property to `ParsecsOption` class to retrieve its n<sup>th</sup> captured string.
