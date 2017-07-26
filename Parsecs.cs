@@ -5,6 +5,9 @@ using System.Text;
 
 namespace Mycelo.Parsecs
 {
+    /// <summary>
+    /// State enumeration of the command-line switches
+    /// </summary>
     public enum ParsecsState
     {
         On,
@@ -12,14 +15,43 @@ namespace Mycelo.Parsecs
         Undefined
     }
 
+    /// <summary>
+    /// Represents a command-line switch and stores its state and captured strings
+    /// </summary>
     public class ParsecsOption
     {
         private ParsecsCommand parser;
 
+        /// <summary>
+        /// Final state of this switch
+        /// </summary>
         public ParsecsState State { get { return parser.GetState(this); } }
+
+        /// <summary>
+        /// If the switch has been selected by the user
+        /// </summary>
         public bool Switched { get { return parser.GetState(this) == ParsecsState.On; } }
+
+        /// <summary>
+        /// Number of times that the parser captured this switch
+        /// </summary>
+        public int Count { get { return parser.GetCount(this); } }
+
+        /// <summary>
+        /// First or sole string captured with this switch
+        /// </summary>
         public string String { get { return parser.GetString(this); } }
+
+        /// <summary>
+        /// Enumeration of all strings captured with this switch
+        /// </summary>
         public IEnumerable<string> Strings { get { return parser.GetStrings(this); } }
+
+        /// <summary>
+        /// Each string captured along with this switch
+        /// </summary>
+        /// <param name="index">Zero-based index</param>
+        /// <returns>String captured along with this swich, or empty if index is out of bounds</returns>
         public string this[int index] { get { var strs = parser.GetStrings(this); if (strs.Count() > index) return strs.ElementAt(index); else return String.Empty; } }
 
         internal ParsecsOption(ParsecsCommand Parser)
@@ -28,13 +60,28 @@ namespace Mycelo.Parsecs
         }
     }
 
+    /// <summary>
+    /// Represents a group of mutually-exclusive command-line switches and stores the user's selection
+    /// </summary>
     public class ParsecsChoice
     {
         private ParsecsCommand parser;
         internal string helptext;
 
+        /// <summary>
+        /// User chosen item's short verb in this mutually-exclusive switch group, or the group's default if no choice has been made
+        /// </summary>
         public char Value { get { return parser.GetGroupValue(this); } }
+
+        /// <summary>
+        /// ParsecsOption instance equivalent to the user's choice, or null if no choice has been made
+        /// </summary>
         public ParsecsOption Option { get { return (ParsecsOption)parser.GetGroupObject(this); } }
+
+        /// <summary>
+        /// Number of times that the parser captured any item of this group
+        /// </summary>
+        public int Count { get { return parser.GetGroupCount(this); } }
 
         internal ParsecsChoice(ParsecsCommand Parser, string HelpText)
         {
@@ -42,12 +89,22 @@ namespace Mycelo.Parsecs
             parser = Parser;
         }
 
+        /// <summary>
+        /// Create a new item in this mutually-exclusive switch group
+        /// </summary>
+        /// <param name="ShortName">Short verb (char) of the group's item</param>
+        /// <param name="LongName">Long verb (string) of the group's item</param>
+        /// <param name="HelpText">Optional description to be shown by the help text generator</param>
+        /// <returns>New ParsecsOption instance to represent this group's item</returns>
         public ParsecsOption AddItem(char ShortName, string LongName, string HelpText = default(string))
         {
             return parser.AddChoiceItem(ShortName, LongName, HelpText, this);
         }
     }
 
+    /// <summary>
+    /// Represents a nested command-line command and provides its own set of switches
+    /// </summary>
     public class ParsecsCommand
     {
         protected const char EQUAL_SIGN = '=';
@@ -67,11 +124,40 @@ namespace Mycelo.Parsecs
         protected readonly string commandname;
         protected ParsecsCommand command;
 
+        /// <summary>
+        /// Nested command's instance found by the encompassing parser
+        /// </summary>
         public ParsecsCommand Command { get { return command; } }
+
+        /// <summary>
+        /// Nested command's verb as found by the encompassing parser
+        /// </summary>
         public string Name { get { return commandname; } }
+
+        /// <summary>
+        /// Enumeration of captured strings unrelated to any of its defined switches
+        /// </summary>
         public IEnumerable<string> LooseParameters { get { return LooseParameter; } }
+
+        /// <summary>
+        /// Boolean state of each switch
+        /// </summary>
+        /// <param name="ShortName">Short verb of the switch</param>
+        /// <returns>True if the switch has been provided by the user</returns>
         public bool this[char ShortName] { get { if (OptionByShort.ContainsKey(ShortName)) return OptionByShort[ShortName].state == ParsecsState.On; else return false; } }
+
+        /// <summary>
+        /// Boolean state of each switch
+        /// </summary>
+        /// <param name="LongName">Long verb of the switch</param>
+        /// <returns>True if the switch has been provided by the user</returns>
         public bool this[string LongName] { get { if (OptionByLong.ContainsKey(LongName)) return OptionByLong[LongName].state == ParsecsState.On; else return false; } }
+
+        /// <summary>
+        /// Strings captured by the parser that aren't related to any of its defined switches
+        /// </summary>
+        /// <param name="Index">Zero-based index</param>
+        /// <returns>Captured string as found by the parser, or empty if index is out of bounds</returns>
         public string this[int Index] { get { return (LooseParameter.Count > Index) ? LooseParameter[Index] : String.Empty; } }
 
         protected enum OptionKind
@@ -94,6 +180,7 @@ namespace Mycelo.Parsecs
             public int maxvalues;
             public ParsecsState state;
             public List<string> values;
+            public int count;
 
             public OptionData(OptionKind OptionKind, object OptionObject, char ShortName, string LongName, string HelpText, bool ThreeState, object SwitchGroup, ParsecsState DefaultState, int MinValues, int MaxValues)
             {
@@ -108,6 +195,7 @@ namespace Mycelo.Parsecs
                 maxvalues = MaxValues;
                 state = DefaultState;
                 values = new List<string>();
+                count = 0;
             }
         }
 
@@ -118,19 +206,41 @@ namespace Mycelo.Parsecs
         protected Dictionary<object, List<OptionData>> OptionGroups = new Dictionary<object, List<OptionData>>();
         protected List<OptionData> LoneOptions = new List<OptionData>();
         protected Dictionary<object, OptionData> GroupValue = new Dictionary<object, OptionData>();
+        protected Dictionary<object, int> GroupCount = new Dictionary<object, int>();
         protected Dictionary<object, char> GroupDefault = new Dictionary<object, char>();
         protected List<string> LooseParameter = new List<string>();
 
+        /// <summary>
+        /// Creates a new simple switch
+        /// </summary>
+        /// <param name="ShortName">Short verb (char) of the switch</param>
+        /// <param name="LongName">Long verb (string) of the switch</param>
+        /// <param name="HelpText">Optional description to be shown by the help text generator</param>
+        /// <returns>New ParsecsOption instance to represent this switch</returns>
         public ParsecsOption AddOption(char ShortName, string LongName, string HelpText = default(string))
         {
             return AddOption(OptionKind.Switch, ShortName, LongName, HelpText, false, null, ParsecsState.Off, 0, 0);
         }
 
+        /// <summary>
+        /// Creates a new on/off switch that can be turned on or off freely along the command line
+        /// </summary>
+        /// <param name="ShortName">Short verb (char) of the switch</param>
+        /// <param name="LongName">Long verb (string) of the switch</param>
+        /// <param name="DefaultState">State to be assumed for this switch when ignored by the user</param>
+        /// <param name="HelpText">Optional description to be shown by the help text generator</param>
+        /// <returns>New ParsecsOption instance to represent this switch</returns>
         public ParsecsOption AddOnOff(char ShortName, string LongName, ParsecsState DefaultState, string HelpText = default(string))
         {
             return AddOption(OptionKind.Switch, ShortName, LongName, HelpText, true, null, DefaultState, 0, 0);
         }
 
+        /// <summary>
+        /// Creates a new group of mutually-exclusive switches
+        /// </summary>
+        /// <param name="DefaultValue">Switch's short verb to be assumed if the user don't make any choice</param>
+        /// <param name="HelpText">Optional description to be shown by the help text generator</param>
+        /// <returns>New ParsecsChoice instance to spawn the group's items and store its final value</returns>
         public ParsecsChoice AddChoice(char DefaultValue = default(char), string HelpText = default(string))
         {
             ParsecsChoice group = new ParsecsChoice(this, HelpText);
@@ -138,21 +248,51 @@ namespace Mycelo.Parsecs
             return group;
         }
 
+        /// <summary>
+        /// Creates a new switch that captures a string after it
+        /// </summary>
+        /// <param name="ShortName">Short verb (char) of the switch</param>
+        /// <param name="LongName">Long verb (string) of the switch</param>
+        /// <param name="HelpText">Optional description to be shown by the help text generator</param>
+        /// <returns>New ParsecsOption instance to represent this switch and store the captured string</returns>
         public ParsecsOption AddString(char ShortName, string LongName, string HelpText = default(string))
         {
             return AddOption(OptionKind.String, ShortName, LongName, HelpText, false, null, ParsecsState.Undefined, 1, 1);
         }
 
+        /// <summary>
+        /// Creates a new switch that captures several strings after it
+        /// </summary>
+        /// <param name="ShortName">Short verb (char) of the switch</param>
+        /// <param name="LongName">Long verb (string) of the switch</param>
+        /// <param name="MinValues">Minimum number of strings that the user is expected to provide</param>
+        /// <param name="HelpText">Optional description to be shown by the help text generator</param>
+        /// <returns>New ParsecsOption instance to represent this switch and store the captured strings</returns>
         public ParsecsOption AddString(char ShortName, string LongName, int MinValues, string HelpText = default(string))
         {
             return AddOption(OptionKind.String, ShortName, LongName, HelpText, false, null, ParsecsState.Undefined, MinValues, Int32.MaxValue);
         }
 
+        /// <summary>
+        /// Creates a new switch verb that captures several strings after it
+        /// </summary>
+        /// <param name="ShortName">Short verb (char) of the switch</param>
+        /// <param name="LongName">Long verb (string) of the switch</param>
+        /// <param name="MinValues">Minimum number of strings that the user is expected to provide</param>
+        /// <param name="MaxValues">Maximum number of strings to be captured by this switch</param>
+        /// <param name="HelpText">Optional description to be shown by the help text generator</param>
+        /// <returns>New ParsecsOption instance to represent this switch and store the captured strings</returns>
         public ParsecsOption AddString(char ShortName, string LongName, int MinValues, int MaxValues, string HelpText = default(string))
         {
             return AddOption(OptionKind.String, ShortName, LongName, HelpText, false, null, ParsecsState.Undefined, MinValues, MaxValues);
         }
 
+        /// <summary>
+        /// Creates a new nested command in this parser to be provided as its first argument
+        /// </summary>
+        /// <param name="Command">Verb of the command</param>
+        /// <param name="HelpText">Optional description to be shown by the help text generator</param>
+        /// <returns>New ParsecsCommand instance to represent this command and spawn its own set of switches</returns>
         public ParsecsCommand AddCommand(string Command, string HelpText = default(string))
         {
             ParsecsCommand command = new ParsecsCommand(doubledash, Command, HelpText);
@@ -371,12 +511,14 @@ namespace Mycelo.Parsecs
                 {
                     option.state = ParsecsState.Off;
                     option.values.Clear();
+                    option.count++;
                     return null;
                 }
                 else
                 {
                     if (option.values.Count < option.minvalues)
                     {
+                        option.count++;
                         return option;
                     }
                     else
@@ -387,6 +529,11 @@ namespace Mycelo.Parsecs
             }
             else
             {
+                if (equalsign)
+                {
+                    option.count++;
+                }
+
                 if (option.values.Count < option.maxvalues)
                 {
                     option.values.Add(value);
@@ -412,12 +559,14 @@ namespace Mycelo.Parsecs
         protected void SetSwitch(OptionData option, char sign)
         {
             option.state = GetState(option.threestate, sign);
+            option.count++;
         }
 
         protected void SetGroup(OptionData option)
         {
             object switchgroup = option.switchgroup;
             option.state = ParsecsState.On;
+            option.count++;
 
             foreach (OptionData groupitem in OptionGroups[switchgroup])
             {
@@ -430,10 +579,12 @@ namespace Mycelo.Parsecs
             if (GroupValue.ContainsKey(switchgroup))
             {
                 GroupValue[switchgroup] = option;
+                GroupCount[switchgroup]++;
             }
             else
             {
                 GroupValue.Add(switchgroup, option);
+                GroupCount.Add(switchgroup, 1);
             }
         }
 
@@ -536,7 +687,13 @@ namespace Mycelo.Parsecs
             helptext = HelpText;
         }
 
-        public string HelpText(int LeftPadding = 2, bool UseSlashes = false)
+        /// <summary>
+        /// Generates a help text with the description of each switch
+        /// </summary>
+        /// <param name="LeftPadding">Number of spaces before each text line</param>
+        /// <param name="UseSlashes">If slashes are to be shown instead of dashes</param>
+        /// <returns>A StringBuilder instance with the generated help text</returns>
+        public StringBuilder HelpTextBuilder(int LeftPadding = 2, bool UseSlashes = false)
         {
             StringBuilder lines = new StringBuilder();
 
@@ -618,7 +775,18 @@ namespace Mycelo.Parsecs
                 }
             }
 
-            return lines.ToString();
+            return lines;
+        }
+
+        /// <summary>
+        /// Generates a help text with the description of each switch
+        /// </summary>
+        /// <param name="LeftPadding">Number of spaces before each text line</param>
+        /// <param name="UseSlashes">If slashes are to be shown instead of dashes</param>
+        /// <returns>Multiline string with the generated help text</returns>
+        public string HelpText(int LeftPadding = 2, bool UseSlashes = false)
+        {
+            return HelpTextBuilder(LeftPadding, UseSlashes).ToString();
         }
 
         internal ParsecsState GetState(object optionobject)
@@ -630,6 +798,18 @@ namespace Mycelo.Parsecs
             else
             {
                 return ParsecsState.Undefined;
+            }
+        }
+
+        internal int GetCount(object optionobject)
+        {
+            if (OptionByObject.ContainsKey(optionobject))
+            {
+                return OptionByObject[optionobject].count;
+            }
+            else
+            {
+                return 0;
             }
         }
 
@@ -676,6 +856,18 @@ namespace Mycelo.Parsecs
             }
         }
 
+        internal int GetGroupCount(object switchgroup)
+        {
+            if (GroupCount.ContainsKey(switchgroup))
+            {
+                return GroupCount[switchgroup];
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
         internal object GetGroupObject(object switchgroup)
         {
             if (GroupValue.ContainsKey(switchgroup))
@@ -694,22 +886,28 @@ namespace Mycelo.Parsecs
         }
     }
 
+    /// <summary>
+    /// Main command-line parser class that perform parsing and provides its set of switches
+    /// </summary>
     public class ParsecsParser : ParsecsCommand
     {
         new private string Name { get; }
 
-        public ParsecsParser()
-            : base(true, null, null)
-        {
-            //
-        }
-
-        public ParsecsParser(bool DoubleDash)
+        /// <summary>
+        /// Creates a new ParsecsParser class
+        /// </summary>
+        /// <param name="DoubleDash">If double-dashes are required for the verbs' long names, otherwise only single-dashes can be used</param>
+        public ParsecsParser(bool DoubleDash = true)
             : base(DoubleDash, null, null)
         {
             //
         }
 
+        /// <summary>
+        /// Main parser procedure
+        /// </summary>
+        /// <param name="args">The array of arguments provided to the program</param>
+        /// <returns>True if the parsing completed without unexpected swich verbs</returns>
         new public bool Parse(string[] args)
         {
             return base.Parse(args);
