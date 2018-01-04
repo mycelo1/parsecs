@@ -24,7 +24,7 @@ Command-Line Parameters Parser
 
 * 1.2.0
 
-  + Now targeting **netstandard1.0**, ready to be consumed by *.NET Core* projects while remaining compatible with *.NET Framework 4.0* and above.
+  + Now targeting **netstandard1.0**, ready to be consumed by *.NET Core* projects while remaining compatible with *.NET Framework 4.0* and above (although, in such case, it is recommended to stay on the previous version for now).
 
 * 1.1.5
 
