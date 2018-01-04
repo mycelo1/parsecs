@@ -22,6 +22,10 @@ Command-Line Parameters Parser
 
 ## Version Info
 
+* 1.2.0
+
+  + Now targeting **netstandard1.0**, ready to be consumed by *.NET Core* projects while remaining compatible with *.NET Framework 4.0* and above.
+
 * 1.1.5
 
   + Code completion hints for each class, method, properties and parameters.
@@ -73,7 +77,7 @@ Command-Line Parameters Parser
 
         if (main_parser.Parse(args))
         {
-            if ((main_help.Switched) || (!input.Switched) || (!output.Switched))
+            if ((main_help.Switched) || (!input.Switched))
             {
                 // user requested the help text or didn't provide a required parameter
                 Console.Write(main_parser.HelpText());
@@ -103,7 +107,7 @@ Command-Line Parameters Parser
 
         if (clp.Parse(args))
         {
-            if (clp['h'] || !clp['i'] || !clp['o'])
+            if (clp['h'] || !clp['i'])
             {
                 // user requested the help text or didn't provide a required parameter
                 Console.Write(clp.HelpText());
