@@ -437,12 +437,23 @@ namespace Mycelo.Parsecs
 
         protected OptionData ParseShortSwitch(char sign, string body)
         {
-            if ((body.Length == 1) || ((body[1] != EQUAL_SIGN) && (body[1] != EQUAL_SIGN_ALT)))
+            for (int v_char = 0; v_char < body.Length; v_char++)
             {
-                foreach (char letter in body)
-                {
-                    OptionData option = OptionByShort[letter];
+                OptionData option = OptionByShort[body[v_char]];
 
+                if (option.optionkind == OptionKind.String)
+                {
+                    if ((body.Length > (v_char + 1)) && ((body[v_char + 1] == EQUAL_SIGN) || (body[v_char + 1] == EQUAL_SIGN_ALT)))
+                    {
+                        return ParseString(option, (body.Length > (v_char + 2)) ? body.Substring(v_char + 2, body.Length - (v_char + 2)) : String.Empty, true);
+                    }
+                    else
+                    {
+                        return ParseString(option, (body.Length > (v_char + 1)) ? body.Substring(v_char + 1, body.Length - (v_char + 1)) : String.Empty, false);
+                    }
+                }
+                else
+                {
                     switch (option.optionkind)
                     {
                         case OptionKind.Switch:
@@ -452,28 +463,7 @@ namespace Mycelo.Parsecs
                         case OptionKind.SwitchGroup:
                             SetGroup(option);
                             break;
-
-                        case OptionKind.String:
-                            return ParseString(option, (body.Length > 1) ? body.Substring(1, body.Length - 1) : String.Empty, false);
                     }
-                }
-            }
-            else
-            {
-                OptionData option = OptionByShort[body[0]];
-
-                switch (option.optionkind)
-                {
-                    case OptionKind.Switch:
-                        SetSwitch(option, sign);
-                        break;
-
-                    case OptionKind.SwitchGroup:
-                        SetGroup(option);
-                        break;
-
-                    case OptionKind.String:
-                        return ParseString(option, (body.Length > 2) ? body.Substring(2, body.Length - 2) : String.Empty, true);
                 }
             }
 

@@ -22,6 +22,11 @@ Command-Line Parameters Parser
 
 ## Version Info
 
+* 1.2.1
+
+  + Fixed passing string parameters to groups of short-named verbs much like `tar -xf filename`. The string-capturing verb must be passed as the last in the group, otherwise the rest of the group would be captured as its string's value.
+  + Removed the package's implicit references, such that *NuGet* won't download droves of unnecessary packages (only *System.Linq* for now).
+
 * 1.2.0
 
   + Now targeting **netstandard1.0**, ready to be consumed by *.NET Core* projects while remaining compatible with *.NET Framework 4.0* and above (although, in such case, it is recommended to stay on the previous version for now).
