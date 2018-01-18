@@ -7,8 +7,8 @@
     <AssemblyCompany>mycelo</AssemblyCompany>
     <AssemblyProduct>Parsecs</AssemblyProduct>
     <AssemblyCopyright>Copyleft©2018 mycelo</AssemblyCopyright>
-    <AssemblyVersion>1.2.1</AssemblyVersion>
-    <AssemblyFileVersion>1.2.1</AssemblyFileVersion>
+    <AssemblyVersion>1.2.2</AssemblyVersion>
+    <AssemblyFileVersion>1.2.2</AssemblyFileVersion>
     <PackageId>Parsecs</PackageId>
     <Title>Parsecs</Title>
     <Authors>mycelo</Authors>
@@ -18,7 +18,7 @@
     <PackageLicenseUrl>https://raw.githubusercontent.com/mycelo1/parsecs/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/mycelo1/parsecs</PackageProjectUrl>
     <PackageTags>args, argument, arguments, command, console, line, parameters, parse, parser, parsing</PackageTags>
-    <PackageVersion>1.2.1</PackageVersion>
+    <PackageVersion>1.2.2</PackageVersion>
     <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
   </PropertyGroup>
 
