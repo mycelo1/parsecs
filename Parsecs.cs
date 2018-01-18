@@ -122,6 +122,7 @@ namespace Mycelo.Parsecs
         protected readonly bool doubledash;
         protected readonly string helptext;
         protected readonly string commandname;
+        protected string unparsed = String.Empty;
         protected ParsecsCommand command;
 
         /// <summary>
@@ -138,6 +139,11 @@ namespace Mycelo.Parsecs
         /// Enumeration of captured strings unrelated to any of its defined switches
         /// </summary>
         public IEnumerable<string> LooseParameters { get { return LooseParameter; } }
+
+        /// <summary>
+        /// The remainder of the command line after double-dash
+        /// </summary>
+        public string Unparsed { get { return unparsed; } }
 
         /// <summary>
         /// Boolean state of each switch
@@ -340,12 +346,16 @@ namespace Mycelo.Parsecs
                     return command.Parse(args.Skip(1).ToArray());
                 }
 
+                bool stop = false;
                 foreach (string arg in args)
                 {
-                    if (!String.IsNullOrWhiteSpace(arg))
+                    if (stop)
+                    {
+                        unparsed += arg + '\x20';
+                    }
+                    else if (!String.IsNullOrWhiteSpace(arg))
                     {
                         bool parsed;
-                        bool stop = false;
 
                         if (doubledash)
                         {
@@ -366,11 +376,6 @@ namespace Mycelo.Parsecs
                             {
                                 ParseString(optwaitvalue, Escape(arg), false);
                             }
-                        }
-
-                        if (stop)
-                        {
-                            break;
                         }
                     }
                 }

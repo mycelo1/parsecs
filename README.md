@@ -22,6 +22,10 @@ Command-Line Parameters Parser
 
 ## Version Info
 
+* 1.2.2
+
+  + Added the property `Unparsed` to capture the remainder of the command-line after the parsing interruption token "--".
+
 * 1.2.1
 
   + Fixed passing string parameters to groups of short-named verbs much like `tar -xf filename`. The string-capturing verb must be passed as the last in the group, otherwise the rest of the group would be captured as its string's value.
