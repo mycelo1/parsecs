@@ -399,9 +399,9 @@ namespace Mycelo.Parsecs
             {
                 optwaitvalue = ParseShortSwitch(arg[0], arg.Substring(1, arg.Length - 1));
             }
-            else if ((arg.Length == 2) && (arg[0] == SLASH))
+            else if ((arg.Length >= 2) && ((arg.Length % 2) == 0) && (arg[0] == SLASH) && ((arg.Split(SLASH).Length - 1) == (arg.Length / 2)))
             {
-                optwaitvalue = ParseShortSwitch(arg[0], arg[1].ToString());
+                optwaitvalue = ParseShortSwitch(arg[0], arg.Substring(1, arg.Length - 1));
             }
             else if ((arg.Length > 2) && (arg[0] == SLASH))
             {
@@ -442,32 +442,41 @@ namespace Mycelo.Parsecs
 
         protected OptionData ParseShortSwitch(char sign, string body)
         {
-            for (int v_char = 0; v_char < body.Length; v_char++)
-            {
-                OptionData option = OptionByShort[body[v_char]];
+            char this_sign = sign;
 
-                if (option.optionkind == OptionKind.String)
+            for (int char_pos = 0; char_pos < body.Length; char_pos++)
+            {
+                if ((char_pos > 0) && ((char_pos % 2) == 1) && (body[char_pos] == SLASH))
                 {
-                    if ((body.Length > (v_char + 1)) && ((body[v_char + 1] == EQUAL_SIGN) || (body[v_char + 1] == EQUAL_SIGN_ALT)))
-                    {
-                        return ParseString(option, (body.Length > (v_char + 2)) ? body.Substring(v_char + 2, body.Length - (v_char + 2)) : String.Empty, true);
-                    }
-                    else
-                    {
-                        return ParseString(option, (body.Length > (v_char + 1)) ? body.Substring(v_char + 1, body.Length - (v_char + 1)) : String.Empty, false);
-                    }
+                    this_sign = body[char_pos];
                 }
                 else
                 {
-                    switch (option.optionkind)
-                    {
-                        case OptionKind.Switch:
-                            SetSwitch(option, sign);
-                            break;
+                    OptionData option = OptionByShort[body[char_pos]];
 
-                        case OptionKind.SwitchGroup:
-                            SetGroup(option);
-                            break;
+                    if (option.optionkind == OptionKind.String)
+                    {
+                        if ((body.Length > (char_pos + 1)) && ((body[char_pos + 1] == EQUAL_SIGN) || (body[char_pos + 1] == EQUAL_SIGN_ALT)))
+                        {
+                            return ParseString(option, (body.Length > (char_pos + 2)) ? body.Substring(char_pos + 2, body.Length - (char_pos + 2)) : String.Empty, true);
+                        }
+                        else
+                        {
+                            return ParseString(option, (body.Length > (char_pos + 1)) ? body.Substring(char_pos + 1, body.Length - (char_pos + 1)) : String.Empty, false);
+                        }
+                    }
+                    else
+                    {
+                        switch (option.optionkind)
+                        {
+                            case OptionKind.Switch:
+                                SetSwitch(option, sign);
+                                break;
+
+                            case OptionKind.SwitchGroup:
+                                SetGroup(option);
+                                break;
+                        }
                     }
                 }
             }

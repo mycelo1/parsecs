@@ -22,6 +22,11 @@ Command-Line Parameters Parser
 
 ## Version Info
 
+* 1.2.3
+
+  + The `DoubleDash` parameter of the `ParsecsParser` class' creator enables the support of some advanced features such as the ability to group several short-named verbs after a single dash, thus requiring a double-dash (or one slash) for long-named verbs. This is the default behavior. If disabled, *double-dashes won't be supported anywere* and each single-dash or slash corresponds to exactly one verb (either short or long-named), and, consequently, verbs should always be separated by spaces.
+  + Added support for *MS-DOS* style of verb grouping with slashes without spaces in-between, much like `rmdir /s/q`. This requires the aforementioned `DoubleDash` parameter to be enabled.
+
 * 1.2.2
 
   + Added the property `Unparsed` to capture the remainder of the command-line after the parsing interruption token "--".
