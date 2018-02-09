@@ -340,21 +340,25 @@ namespace Mycelo.Parsecs
 
             try
             {
-                if ((args.Length > 0) && Commands.ContainsKey(args[0].ToLower()))
-                {
-                    command = Commands[args[0].ToLower()];
-                    return command.Parse(args.Skip(1).ToArray());
-                }
-
                 bool stop = false;
+                int this_index = 0;
+
                 foreach (string arg in args)
                 {
+                    this_index++;
+
                     if (stop)
                     {
                         unparsed += arg + '\x20';
                     }
                     else if (!String.IsNullOrWhiteSpace(arg))
                     {
+                        if (Commands.ContainsKey(arg.ToLower()))
+                        {
+                            command = Commands[arg.ToLower()];
+                            return command.Parse(args.Skip(this_index).ToArray());
+                        }
+
                         bool parsed;
 
                         if (doubledash)
@@ -400,6 +404,10 @@ namespace Mycelo.Parsecs
                 optwaitvalue = ParseShortSwitch(arg[0], arg.Substring(1, arg.Length - 1));
             }
             else if ((arg.Length >= 2) && ((arg.Length % 2) == 0) && (arg[0] == SLASH) && ((arg.Split(SLASH).Length - 1) == (arg.Length / 2)))
+            {
+                optwaitvalue = ParseShortSwitch(arg[0], arg.Substring(1, arg.Length - 1));
+            }
+            else if ((arg.Length >= 3) && (arg[0] == SLASH) && ((arg[2] == EQUAL_SIGN) || (arg[2] == EQUAL_SIGN_ALT)))
             {
                 optwaitvalue = ParseShortSwitch(arg[0], arg.Substring(1, arg.Length - 1));
             }

@@ -22,6 +22,11 @@ Command-Line Parameters Parser
 
 ## Version Info
 
+* 1.2.4
+
+  + Now nested commands can be passed anywhere in the command line (previously they shoud be the first argument). Arguments found before it will be parsed by the encompassing parser/command. Arguments found after it will by parsed by its own parser, while the next command is found. Each command found will be encompassed by the previous one.
+  + String capturing verbs can now have its short-named version preceeded by an slash, however, an `:`, `=` or a space is needed beteen the verb and the actual string.
+
 * 1.2.3
 
   + The `DoubleDash` parameter of the `ParsecsParser` class' creator enables the support of some advanced features such as the ability to group several short-named verbs after a single dash, thus requiring a double-dash (or one slash) for long-named verbs. This is the default behavior. If disabled, *double-dashes won't be supported anywere* and each single-dash or slash corresponds to exactly one verb (either short or long-named), and, consequently, verbs should always be separated by spaces.
@@ -225,7 +230,7 @@ Command-Line Parameters Parser
   }
   ```
 
-  > + The user is expected to provide the command's verb as the first argument. Once a valid command is found, the rest of the arguments will be matched with the command's own set of switches. If the first argument does not match any command, the whole line will be parsed by the encompassing instance's own set of switches.
+  > + ~~The user is expected to provide the command's verb as the first argument. Once a valid command is found, the rest of the arguments will be matched with the command's own set of switches. If the first argument does not match any command, the whole line will be parsed by the encompassing instance's own set of switches.~~ Arguments are parsed by the main parser as usual, until a command is found. This command will be registered in the `Command` property of the main parser and the remaining arguments will be present in the command class' own properties.
   > + If the user does not provide a valid command, the `Command` property will point to its own instance.
   > + The nested commands will be listed by the `HelpText` method of the encompassing instance.
   > + Each command can also have its own set of commands in a recursive fashion.
