@@ -1,29 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard1.0</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyTitle>Parsecs</AssemblyTitle>
     <AssemblyDescription>Command-Line Parameters Parsing</AssemblyDescription>
     <AssemblyCompany>mycelo</AssemblyCompany>
     <AssemblyProduct>Parsecs</AssemblyProduct>
-    <AssemblyCopyright>Copyleft©2018 mycelo</AssemblyCopyright>
-    <AssemblyVersion>1.2.4</AssemblyVersion>
-    <AssemblyFileVersion>1.2.4</AssemblyFileVersion>
+    <AssemblyCopyright>Copyleft©2018-2019 mycelo</AssemblyCopyright>
+    <AssemblyVersion>1.3.0</AssemblyVersion>
+    <AssemblyFileVersion>1.3.0</AssemblyFileVersion>
     <PackageId>Parsecs</PackageId>
     <Title>Parsecs</Title>
     <Authors>mycelo</Authors>
     <Description>Command-Line Parameters Parsing</Description>
-    <Copyright>Copyleft©2018 mycelo</Copyright>
+    <Copyright>Copyleft©2018-2019 mycelo</Copyright>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageLicenseUrl>https://raw.githubusercontent.com/mycelo1/parsecs/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/mycelo1/parsecs</PackageProjectUrl>
     <PackageTags>args, argument, arguments, command, console, line, parameters, parse, parser, parsing</PackageTags>
-    <PackageVersion>1.2.4</PackageVersion>
-    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <PackageVersion>1.3.0</PackageVersion>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Linq" Version="4.3.0" />
-  </ItemGroup>
 
 </Project>

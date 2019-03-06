@@ -22,6 +22,10 @@ Command-Line Parameters Parser
 
 ## Version Info
 
+* 1.3.0
+
+  + Making the jump to **netstandard2.0**. No more messy dependencies, and problably no more *.NET Framework* for now.
+
 * 1.2.4
 
   + Now nested commands can be passed anywhere in the command line (previously they shoud be the first argument). Arguments found before it will be parsed by the encompassing parser/command. Arguments found after it will by parsed by its own parser, while the next command is found. Each command found will be encompassed by the previous one.
